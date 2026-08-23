@@ -6,6 +6,78 @@ A reference .NET application implementing an e-commerce website using a services
 
 ![eShop homepage screenshot](img/eshop_homepage.png)
 
+## Enterprise Banking & PCI-DSS Refactoring Overview
+
+This fork of eShop has been refactored to align with enterprise banking standards
+(PCI-DSS, ISO 20022, PSD2, AML). The payment path — `Ordering.API`,
+`Ordering.Infrastructure`, `Payment.Shared`, and `PaymentProcessor` — now implements
+the following controls:
+
+### Financial Security & Data Protection (PCI-DSS)
+
+- **Field-level AES-256-GCM encryption at rest**: `Aes256SensitiveDataProtector`
+  (`src/Payment.Shared/Security/`) encrypts the payment PAN and security code before
+  they reach the database via an EF Core value converter applied in
+  `PaymentMethodEntityTypeConfiguration`. Keys come from configuration
+  (`PaymentSecurity:EncryptionKey`, base64 256-bit) and never from source control;
+  without a key a no-op protector is used (dev/test only). Authenticated decryption
+  failures surface as a uniform `CryptographicException` to avoid oracle behavior.
+- **PAN masking (PCI-DSS 3.3)**: `PanMasker` masks card numbers in every log and API
+  payload (`XXXXXXXXXXXX1111` — last four digits only). HTTP request logging adds the
+  masked PAN to the diagnostic scope, never the raw value.
+- **Immutable financial audit trail (AML / PSD2)**: every financial command
+  (order placement, payment authorization/settlement, cancellation) appends a
+  `FinancialAuditEvent` to `ordering.financial_audit_events`. Entries carry event
+  type, UTC timestamp, correlation id, actor, subject, amount/currency, outcome, the
+  ISO 20022 message id, and a **SHA-256 hash chain** (`Hash` links to `PreviousHash`)
+  making the ledger tamper-evident. The audit row is written inside the same ACID
+  transaction as the state change (`EfFinancialAuditStore`).
+
+### ISO 20022 & Banking Payment Standards
+
+- `eShop.Payment.Shared.Iso20022` (`src/Payment.Shared/Iso20022/`) models the
+  **pain.001.001.09** (CustomerCreditTransferInitiation) and **pacs.008.001.08**
+  (FIToFICustomerCreditTransfer) message structures: end-to-end id
+  (`ORDER-{n}`, 35 chars max), instructed amount with currency, debtor/creditor
+  parties, and charge bearer — serialized with the real ISO 20022 XML element names.
+- `PaymentProcessor` builds a pain.001 message for each authorization; the
+  settlement path emits a pacs.008 message. Message ids are stored on the audit
+  entries for cross-system traceability.
+- **Idempotency**: all financial endpoints require an `x-requestid` header. The
+  `IdempotencyEndpointFilter` (`Ordering.API/Infrastructure/Idempotency/`) reserves
+  the token in Redis (`IIdempotencyStore`, atomic set-if-absent with a 24h TTL) to
+  prevent duplicate execution, replays in-flight/duplicate submissions with HTTP 200
+  and `X-Idempotent-Replay: true`, and the MediatR `IdentifiedCommand` pipeline keeps
+  the per-command `RequestManager` dedup as a second layer (double-spend prevention).
+
+### Database & Transaction Integrity
+
+- `TransactionBehavior` wraps every command in an explicit transaction created via
+  the **Npgsql EF Core execution strategy** (retry-on-transient-failure safe) using
+  **serializable isolation for monetary commands** and read-committed otherwise.
+- Polly resilience pipelines (`DatabaseResiliencePipelines`) retry monetary balance
+  reads (`MonetaryReads`) and transient failures with exponential backoff; all
+  `OrderQueries` reads route through them.
+- EF Core migration `FinancialAuditAndPciEncryption` creates the audit table and
+  widens the encrypted columns.
+
+### DevOps & CI/CD
+
+- Service images run as the **non-root `app` user (UID 1654)** via `ContainerUser`
+  in `Directory.Build.props`; Redis (idempotency store) is wired to `ordering-api`
+  in the AppHost.
+- `.github/workflows/banking-ci.yml` builds the solution, runs the payment-flow
+  unit tests (`Ordering.UnitTests`, `Application.UnitTests`), runs the Postgres-backed
+  functional tests, and executes security linters (NuGet vulnerability scan, DevSkim,
+  CodeQL).
+
+### Configuration
+
+| Setting | Purpose |
+| ------- | ------- |
+| `PaymentSecurity:EncryptionKey` | Base64-encoded 256-bit AES key for PAN encryption (optional; dev no-op protector without it) |
+| `ConnectionStrings:redis` | Redis instance backing the idempotency token store |
+
 ## Getting Started
 
 This version of eShop is based on .NET 10.

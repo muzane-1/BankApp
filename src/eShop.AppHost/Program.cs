@@ -41,6 +41,7 @@ var catalogApi = builder.AddProject<Projects.Catalog_API>("catalog-api")
 var orderingApi = builder.AddProject<Projects.Ordering_API>("ordering-api")
     .WithReference(rabbitMq).WaitFor(rabbitMq)
     .WithReference(orderDb).WaitFor(orderDb)
+    .WithReference(redis) // idempotency token store for transaction endpoints
     .WithHttpHealthCheck("/health")
     .WithEnvironment("Identity__Url", identityEndpoint);
 

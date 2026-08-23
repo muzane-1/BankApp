@@ -48,6 +48,48 @@ internal static class Extensions
         services.AddScoped<IBuyerRepository, BuyerRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IRequestManager, RequestManager>();
+
+        AddFinancialSecurityServices(builder);
+    }
+
+    /// <summary>
+    /// Registers the banking-grade cross-cutting services:
+    /// PCI-DSS field-level encryption, AML/PSD2 audit trail and the
+    /// idempotency token store (Redis when provisioned, in-memory otherwise).
+    /// </summary>
+    private static void AddFinancialSecurityServices(IHostApplicationBuilder builder)
+    {
+        var services = builder.Services;
+
+        // PCI-DSS 3.4/3.5: AES-256 field-level encryption of payment data at rest.
+        // The key must come from a secure configuration source (env var or key vault),
+        // never from source control. Without a key a loud pass-through protector is
+        // used so local development keeps working.
+        services.AddOptions<PaymentDataProtectionOptions>()
+            .BindConfiguration(PaymentDataProtectionOptions.SectionName);
+        services.AddSingleton<ISensitiveDataProtector>(sp =>
+        {
+            var key = builder.Configuration[$"{PaymentDataProtectionOptions.SectionName}:Key"];
+            return string.IsNullOrWhiteSpace(key)
+                ? new NullSensitiveDataProtector(sp.GetRequiredService<ILogger<NullSensitiveDataProtector>>())
+                : new Aes256SensitiveDataProtector(key);
+        });
+
+        // AML/PSD2: immutable, hash-chained financial audit trail.
+        services.AddScoped<IFinancialAuditStore, EfFinancialAuditStore>();
+
+        // Strict idempotency tokens for transaction endpoints: Redis in deployed
+        // environments, in-memory cache for local dev and tests.
+        if (!string.IsNullOrEmpty(builder.Configuration.GetConnectionString("redis")))
+        {
+            builder.AddRedisDistributedCache("redis");
+            services.AddSingleton<IIdempotencyTokenStore, DistributedCacheIdempotencyTokenStore>();
+        }
+        else
+        {
+            services.AddMemoryCache();
+            services.AddSingleton<IIdempotencyTokenStore, MemoryCacheIdempotencyTokenStore>();
+        }
     }
 
     private static void AddEventBusSubscriptions(this IEventBusBuilder eventBus)

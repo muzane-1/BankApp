@@ -12,6 +12,7 @@
     <Project Path="src/OrderProcessor/OrderProcessor.csproj" />
     <Project Path="src/Ordering.Domain/Ordering.Domain.csproj" />
     <Project Path="src/Ordering.Infrastructure/Ordering.Infrastructure.csproj" />
+    <Project Path="src/Payment.Shared/Payment.Shared.csproj" />
     <Project Path="src/PaymentProcessor/PaymentProcessor.csproj" />
     <Project Path="src/WebApp/WebApp.csproj" />
     <Project Path="src/WebhookClient/WebhookClient.csproj" />

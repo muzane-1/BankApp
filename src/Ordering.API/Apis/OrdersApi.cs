@@ -8,13 +8,15 @@ public static class OrdersApi
     {
         var api = app.MapGroup("api/orders").HasApiVersion(1.0);
 
-        api.MapPut("/cancel", CancelOrderAsync);
-        api.MapPut("/ship", ShipOrderAsync);
+        // Financial transaction endpoints require a client-supplied idempotency
+        // token ("x-requestid") so retries can never double-execute a payment.
+        api.MapPut("/cancel", CancelOrderAsync).RequireIdempotencyToken();
+        api.MapPut("/ship", ShipOrderAsync).RequireIdempotencyToken();
         api.MapGet("{orderId:int}", GetOrderAsync);
         api.MapGet("/", GetOrdersByUserAsync);
         api.MapGet("/cardtypes", GetCardTypesAsync);
         api.MapPost("/draft", CreateOrderDraftAsync);
-        api.MapPost("/", CreateOrderAsync);
+        api.MapPost("/", CreateOrderAsync).RequireIdempotencyToken();
 
         return api;
     }
@@ -137,11 +139,15 @@ public static class OrdersApi
 
         using (services.Logger.BeginScope(new List<KeyValuePair<string, object>> { new("IdentifiedCommandId", requestId) }))
         {
-            var maskedCCNumber = request.CardNumber.Substring(request.CardNumber.Length - 4).PadLeft(request.CardNumber.Length, 'X');
+            // PCI-DSS 3.3: mask the PAN so only the last four digits travel downstream.
+            var maskedCCNumber = PanMasking.Mask(request.CardNumber);
+            // PCI-DSS 3.2: sensitive authentication data (CVV) is never stored or
+            // logged post-authorization; redact it at the trust boundary.
+            var maskedSecurityNumber = PanMasking.MaskSecurityCode(request.CardSecurityNumber);
             var createOrderCommand = new CreateOrderCommand(request.Items, request.UserId, request.UserName, request.City, request.Street,
                 request.State, request.Country, request.ZipCode,
                 maskedCCNumber, request.CardHolderName, request.CardExpiration,
-                request.CardSecurityNumber, request.CardTypeId);
+                maskedSecurityNumber, request.CardTypeId);
 
             var requestCreateOrder = new IdentifiedCommand<CreateOrderCommand, bool>(createOrderCommand, requestId);
 
