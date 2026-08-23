@@ -18,6 +18,7 @@ public static class Iso20022PaymentMessageFactory
     {
         ArgumentNullException.ThrowIfNull(instruction);
         ArgumentException.ThrowIfNullOrWhiteSpace(initiatingPartyName);
+        ValidateSwiftIdentifiers(instruction);
 
         var now = creationTime ?? DateTimeOffset.UtcNow;
         var amount = instruction.Amount ?? 0m;
@@ -67,6 +68,7 @@ public static class Iso20022PaymentMessageFactory
         DateTimeOffset? creationTime = null)
     {
         ArgumentNullException.ThrowIfNull(instruction);
+        ValidateSwiftIdentifiers(instruction);
 
         var now = creationTime ?? DateTimeOffset.UtcNow;
 
@@ -95,6 +97,23 @@ public static class Iso20022PaymentMessageFactory
                 RemittanceInformation = instruction.RemittanceInformation
             }
         };
+    }
+
+    /// <summary>
+    /// SWIFT formatting gate: any BIC carried on the instruction must be a valid
+    /// ISO 9362 identifier before it is embedded in an ISO 20022 message.
+    /// </summary>
+    private static void ValidateSwiftIdentifiers(PaymentInstruction instruction)
+    {
+        if (instruction.DebtorAgentBic is not null && !SwiftFormatting.IsValidBic(instruction.DebtorAgentBic))
+        {
+            throw new ArgumentException($"Debtor agent BIC '{instruction.DebtorAgentBic}' is not a valid SWIFT/BIC code.", nameof(instruction));
+        }
+
+        if (instruction.CreditorAgentBic is not null && !SwiftFormatting.IsValidBic(instruction.CreditorAgentBic))
+        {
+            throw new ArgumentException($"Creditor agent BIC '{instruction.CreditorAgentBic}' is not a valid SWIFT/BIC code.", nameof(instruction));
+        }
     }
 
     /// <summary>Generates an ISO 20022 Max35Text compliant message identifier.</summary>

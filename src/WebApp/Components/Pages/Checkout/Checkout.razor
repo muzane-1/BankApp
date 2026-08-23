@@ -1,59 +1,71 @@
-﻿@page "/checkout"
+@page "/checkout"
 @using System.Globalization
 @using System.ComponentModel.DataAnnotations
 @inject BasketState Basket
 @inject NavigationManager Nav
 @attribute [Authorize]
 
-<PageTitle>Checkout | AdventureWorks</PageTitle>
-<SectionContent SectionName="page-header-title">Checkout</SectionContent>
+<PageTitle>Payment Transfer | National Digital Banking Portal</PageTitle>
+<SectionContent SectionName="page-header-title">Payment Transfer Gateway</SectionContent>
+<SectionContent SectionName="page-header-subtitle">Initiate a SWIFT / ISO 20022 (pacs.008) credit transfer. All transfers are idempotent, encrypted, and audit-logged per PCI-DSS and AML requirements.</SectionContent>
 
-<div class='checkout'>
+<div class='checkout transfer-gateway'>
     <EditForm EditContext="@editContext" FormName="checkout" OnSubmit="@HandleSubmitAsync" Enhance>
         <DataAnnotationsValidator />
         <div class="form">
             <div class="form-section">
-                <h2>Shipping address</h2>
+                <h2>Beneficiary details</h2>
                 <label>
-                    Address
-                    <InputText @bind-Value="@Info.Street" />
-                    <ValidationMessage For="@(() => Info.Street)" />
+                    Beneficiary name
+                    <InputText @bind-Value="@Info.BeneficiaryName" placeholder="e.g. Contoso Trading Ltd" />
+                    <ValidationMessage For="@(() => Info.BeneficiaryName)" />
                 </label>
+                <label>
+                    Beneficiary IBAN
+                    <InputText @bind-Value="@Info.BeneficiaryIban" placeholder="e.g. DE89370400440532013000" />
+                    <ValidationMessage For="@(() => Info.BeneficiaryIban)" />
+                </label>
+                <label>
+                    Beneficiary bank SWIFT / BIC code
+                    <InputText @bind-Value="@Info.SwiftCode" placeholder="e.g. COBADEFFXXX" />
+                    <ValidationMessage For="@(() => Info.SwiftCode)" />
+                </label>
+            </div>
+            <div class="form-section">
+                <h2>Transfer details</h2>
                 <div class="form-group">
                     <div class="form-group-item">
                         <label>
-                            City
-                            <InputText @bind-Value="@Info.City" />
-                            <ValidationMessage For="@(() => Info.City)" />
+                            Transaction amount (USD)
+                            <InputNumber @bind-Value="@Info.TransferAmount" />
+                            <ValidationMessage For="@(() => Info.TransferAmount)" />
                         </label>
                     </div>
                     <div class="form-group-item">
                         <label>
-                            State
-                            <InputText @bind-Value="@Info.State" />
-                            <ValidationMessage For="@(() => Info.State)" />
-                        </label>
-                    </div>
-                    <div class="form-group-item">
-                        <label>
-                            Zip code
-                            <InputText @bind-Value="@Info.ZipCode" />
-                            <ValidationMessage For="@(() => Info.ZipCode)" />
+                            Payment reference (optional)
+                            <InputText @bind-Value="@Info.RemittanceReference" placeholder="Invoice or purpose reference" />
+                            <ValidationMessage For="@(() => Info.RemittanceReference)" />
                         </label>
                     </div>
                 </div>
-                <div>
-                    <label>
-                        Country
-                        <InputText @bind-Value="@Info.Country" />
-                        <ValidationMessage For="@(() => Info.Country)" />
-                    </label>
+                <div class="iso-message-preview" aria-label="ISO 20022 message preview">
+                    <h3>ISO 20022 pacs.008 preview</h3>
+                    <dl>
+                        <dt>End-to-End ID</dt><dd><code>@EndToEndId</code></dd>
+                        <dt>Debtor</dt><dd>@(HttpContext.User.Identity?.Name ?? "—")</dd>
+                        <dt>Creditor</dt><dd>@(string.IsNullOrWhiteSpace(Info?.BeneficiaryName) ? "—" : Info.BeneficiaryName)</dd>
+                        <dt>Creditor account (IBAN)</dt><dd>@(string.IsNullOrWhiteSpace(Info?.BeneficiaryIban) ? "—" : Info.BeneficiaryIban)</dd>
+                        <dt>Creditor agent (BIC)</dt><dd>@(string.IsNullOrWhiteSpace(Info?.SwiftCode) ? "—" : Info.SwiftCode)</dd>
+                        <dt>Instructed amount</dt><dd>@(Info?.TransferAmount > 0 ? Info.TransferAmount.ToString("0.00", CultureInfo.InvariantCulture) + " USD" : "—")</dd>
+                        <dt>Idempotency key</dt><dd><code>@Info?.RequestId</code></dd>
+                    </dl>
                 </div>
             </div>
             <div class="form-section">
                 <div class="form-buttons">
-                    <a href="cart" class="button button-secondary"><img role="presentation" src="icons/arrow-left.svg" />Back to the shopping bag</a>
-                    <button class="button button-primary" type="submit">Place order</button>
+                    <a href="cart" class="button button-secondary"><img role="presentation" src="icons/arrow-left.svg" />Back to transfer summary</a>
+                    <button class="button button-primary" type="submit">Authorize transfer</button>
                 </div>
             </div>
         </div>
@@ -64,6 +76,17 @@
 @code {
     private EditContext editContext = default!;
     private ValidationMessageStore extraMessages = default!;
+
+    // ISO 20022 EndToEndId (Max35Text) derived from the idempotency request id,
+    // so the bank chain and the client retry token reference the same transfer.
+    private string EndToEndId
+    {
+        get
+        {
+            var id = $"TRF-{Info?.RequestId:N}";
+            return id[..Math.Min(35, id.Length)];
+        }
+    }
 
     [SupplyParameterFromForm]
     public BasketCheckoutInfo Info { get; set; } = default!;
@@ -91,6 +114,7 @@
             State = ReadClaim("address_state"),
             Country = ReadClaim("address_country"),
             ZipCode = ReadClaim("address_zip_code"),
+            BeneficiaryName = ReadClaim("beneficiary_name") ?? string.Empty,
             RequestId = Guid.NewGuid()
         };
 
@@ -119,12 +143,9 @@
     {
         extraMessages.Clear();
 
-        if ((await Basket.GetBasketItemsAsync()).Count == 0)
+        if ((await Basket.GetBasketItemsAsync()).Count == 0 && Info.TransferAmount <= 0)
         {
-            extraMessages.Add(new FieldIdentifier(Info, ""), "Your cart is empty");
+            extraMessages.Add(new FieldIdentifier(Info, ""), "Specify a transaction amount or add items to the transfer summary");
         }
     }
-
-    private static DateTime? ParseExpiryDate(string? mmyy)
-        => DateTime.TryParseExact($"01/{mmyy}", "dd/MM/yy", null, DateTimeStyles.None, out var result) ? result.ToUniversalTime() : null;
 }

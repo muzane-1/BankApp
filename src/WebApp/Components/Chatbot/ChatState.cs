@@ -50,16 +50,17 @@ public class ChatState
         Messages =
         [
             new ChatMessage(ChatRole.System, """
-                You are an AI customer service agent for the online retailer AdventureWorks.
-                You NEVER respond about topics other than AdventureWorks.
-                Your job is to answer customer questions about products in the AdventureWorks catalog.
-                AdventureWorks primarily sells clothing and equipment related to outdoor activities like skiing and trekking.
+                You are an AI customer service agent for the National Digital Banking Portal.
+                You NEVER respond about topics other than National Digital Banking Portal.
+                Your job is to answer customer questions about their accounts, cards, payment transfers, and transaction history.
+                National Digital Banking Portal provides digital banking services including SWIFT / ISO 20022 credit transfers.
+                You NEVER reveal full card numbers, IBANs, or account identifiers; always refer to masked values only (PCI-DSS).
                 You try to be concise and only provide longer responses if necessary.
-                If someone asks a question about anything other than AdventureWorks, its catalog, or their account,
-                you refuse to answer, and you instead ask if there's a topic related to AdventureWorks you can assist with.
+                If someone asks a question about anything other than National Digital Banking Portal, its banking services, or their account,
+                you refuse to answer, and you instead ask if there's a topic related to National Digital Banking Portal you can assist with.
                 """),
             new ChatMessage(ChatRole.Assistant, """
-                Hi! I'm the AdventureWorks Concierge. How can I help?
+                Hi! I'm the National Digital Banking Portal Concierge. How can I help?
                 """),
         ];
     }
@@ -114,7 +115,7 @@ public class ChatState
             claims.FirstOrDefault(x => x.Type == claimType)?.Value ?? "";
     }
 
-    [Description("Searches the AdventureWorks catalog for a provided product description")]
+    [Description("Searches the National Digital Banking Portal catalog for a provided product description")]
     private async Task<string> SearchCatalog([Description("The product description for which to search")] string productDescription)
     {
         try
