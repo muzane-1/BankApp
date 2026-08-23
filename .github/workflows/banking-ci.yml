@@ -34,14 +34,16 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
-      # Restore MAUI/Tizen workloads required by the ClientApp test project
-      # before package restore, otherwise resolution fails with NETSDK1147.
+      # Restore workloads for any OS-applicable targets before package
+      # restore, otherwise resolution fails with NETSDK1147. Build the web
+      # subset: MAUI iOS/macOS packs (ClientApp/HybridApp) cannot resolve on a
+      # Linux runner and are covered separately by pr-validation-maui.yml.
       - name: Restore .NET workloads
         run: dotnet workload restore eShop.slnx
       - name: Restore
-        run: dotnet restore eShop.slnx
+        run: dotnet restore eShop.Web.slnf
       - name: Build
-        run: dotnet build eShop.slnx --no-restore --configuration Release
+        run: dotnet build eShop.Web.slnf --no-restore --configuration Release
 
   payment-tests:
     name: Payment flow unit tests
@@ -78,7 +80,7 @@ jobs:
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
       - name: Vulnerable dependency scan
-        run: dotnet list eShop.slnx package --vulnerable --include-transitive
+        run: dotnet list eShop.Web.slnf package --vulnerable --include-transitive
       - name: Outdated sensitive-dependency check (crypto/resilience)
         run: dotnet list src/Ordering.API/Ordering.API.csproj package --outdated
       - name: DevSkim security linter

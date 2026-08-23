@@ -10,7 +10,7 @@ export async function addProductToCart(page: Page, productName: string) {
 
 export async function emptyCart(page: Page) {
   await page.goto('/cart');
-  await expect(page.getByRole('heading', { name: 'Shopping bag' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Transfer summary' })).toBeVisible();
 
   const quantities = page.getByLabel('product quantity');
   while (await quantities.count() > 0) {

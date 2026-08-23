@@ -6,7 +6,7 @@ test('add, update, and remove an item from the cart', async ({ page }) => {
   await addProductToCart(page, 'Adventurer GPS Watch');
 
   await page.goto('/cart');
-  await expect(page.getByRole('heading', { name: 'Shopping bag' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Transfer summary' })).toBeVisible();
   await expect(page.getByText('Adventurer GPS Watch')).toBeVisible();
 
   const quantity = page.getByLabel('product quantity');

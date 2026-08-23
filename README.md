@@ -26,7 +26,7 @@ enterprise-grade financial system implementing **ISO 20022**, **SWIFT**, **PCI-D
 
 ## Architecture
 
-```
+```text
 WebApp (Blazor banking portal)
   ├─ Accounts & Cards dashboard        (masked PANs, balances)
   ├─ Payment Transfer Gateway          (IBAN / SWIFT / beneficiary / amount)
