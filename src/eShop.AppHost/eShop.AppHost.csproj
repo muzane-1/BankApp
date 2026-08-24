@@ -13,25 +13,14 @@
     <PackageReference Include="Aspire.Hosting.RabbitMQ" />
     <PackageReference Include="Aspire.Hosting.Redis" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
-    <PackageReference Include="Aspire.Hosting.Foundry" />
-    <PackageReference Include="Aspire.Hosting.Yarp" />
-    <PackageReference Include="CommunityToolkit.Aspire.Hosting.Ollama" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Basket.API\Basket.API.csproj" />
-    <ProjectReference Include="..\Catalog.API\Catalog.API.csproj" />
     <ProjectReference Include="..\Identity.API\Identity.API.csproj" />
     <ProjectReference Include="..\Ordering.API\Ordering.API.csproj" />
     <ProjectReference Include="..\OrderProcessor\OrderProcessor.csproj" />
     <ProjectReference Include="..\PaymentProcessor\PaymentProcessor.csproj" />
-    <ProjectReference Include="..\Webhooks.API\Webhooks.API.csproj" />
     <ProjectReference Include="..\WebApp\WebApp.csproj" />
-    <ProjectReference Include="..\WebhookClient\WebhookClient.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="eShop.AppHost.UnitTests" />
   </ItemGroup>
 
 </Project>

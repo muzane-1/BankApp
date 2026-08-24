@@ -40,6 +40,7 @@ Ordering.API  ── Payment.Shared (ISO 20022 / AES-256-GCM / idempotency / aud
   └─ SetPaidOrderStatusCommand  → pacs.008 settlement message + hash-chained audit event
         │
         ▼  RabbitMQ integration events
+OrderProcessor ── grace-period confirmation for submitted transfers
 PaymentProcessor ── pain.001 authorization message + structured AML audit logs
 ```
 
@@ -139,9 +140,8 @@ Postgres-backed `tests/Ordering.FunctionalTests`.
 
 `.github/workflows/banking-ci.yml` runs on every payment-path change:
 
-1. `dotnet workload restore` (MAUI/Tizen workloads) → `dotnet restore` → Release build.
-2. Payment-flow unit tests (`Ordering.UnitTests`, `Application.UnitTests`,
-   AppHost orchestration tests).
+1. `dotnet restore` → Release build.
+2. Payment-flow unit tests (`Ordering.UnitTests`, `Application.UnitTests`).
 3. Postgres-backed ordering functional tests (migrations, API, audit trail).
 4. Security linters: NuGet vulnerability scan, DevSkim, CodeQL.
 
@@ -151,6 +151,7 @@ Service images are published as non-root containers (`ContainerUser=1654`).
 
 - `src/WebApp` — Blazor banking portal (accounts dashboard, transfer gateway, transaction history)
 - `src/Ordering.API` / `src/Ordering.Infrastructure` — transfer processing, idempotency, transactions, audit ledger
+- `src/OrderProcessor` — grace-period worker moving submitted transfers into the payment pipeline
 - `src/Payment.Shared` — ISO 20022 messages, SWIFT formatting, AES-256-GCM, idempotency stores, audit abstractions
 - `src/PaymentProcessor` — authorization worker emitting pain.001 messages
 - `src/eShop.AppHost` — Aspire orchestration (Postgres, Redis, RabbitMQ, services)

@@ -14,7 +14,7 @@ public class IdentityConfigurationTests
         var scopes = Config.GetApiScopes().Select(scope => scope.Name).Order().ToArray();
 
         CollectionAssert.AreEqual(resources, scopes);
-        CollectionAssert.AreEquivalent(new[] { "basket", "orders", "webhooks" }, scopes);
+        CollectionAssert.AreEquivalent(new[] { "orders" }, scopes);
     }
 
     [TestMethod]
@@ -22,21 +22,17 @@ public class IdentityConfigurationTests
     {
         var values = new Dictionary<string, string?>
         {
-            ["MauiCallback"] = "maui://callback",
             ["WebAppClient"] = "https://webapp.test",
-            ["WebhooksWebClient"] = "https://webhooks-client.test",
-            ["BasketApiClient"] = "https://basket.test",
-            ["OrderingApiClient"] = "https://ordering.test",
-            ["WebhooksApiClient"] = "https://webhooks.test"
+            ["OrderingApiClient"] = "https://ordering.test"
         };
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 
         var clients = Config.GetClients(configuration).ToDictionary(client => client.ClientId);
 
+        CollectionAssert.AreEquivalent(new[] { "webapp", "orderingswaggerui" }, clients.Keys.ToArray());
         CollectionAssert.Contains(clients["webapp"].RedirectUris.ToList(), "https://webapp.test/signin-oidc");
-        CollectionAssert.Contains(clients["webhooksclient"].AllowedScopes.ToList(), "webhooks");
-        CollectionAssert.Contains(clients["maui"].AllowedScopes.ToList(), "basket");
-        CollectionAssert.Contains(clients["maui"].AllowedScopes.ToList(), "orders");
+        CollectionAssert.Contains(clients["webapp"].AllowedScopes.ToList(), "orders");
+        CollectionAssert.Contains(clients["orderingswaggerui"].AllowedScopes.ToList(), "orders");
     }
 
     [TestMethod]

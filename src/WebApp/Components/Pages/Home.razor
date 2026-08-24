@@ -1,0 +1,66 @@
+@page "/"
+
+<PageTitle>Accounts | National Digital Banking Portal</PageTitle>
+<SectionContent SectionName="page-header-title">Accounts &amp; Cards</SectionContent>
+<SectionContent SectionName="page-header-subtitle">Your accounts and cards at a glance. Card numbers are masked per PCI-DSS 3.3 — only the last four digits are ever displayed.</SectionContent>
+
+<div class="accounts-dashboard">
+    <section class="accounts-section">
+        <h2>Accounts</h2>
+        <ul class="accounts-list">
+            @foreach (var account in Accounts)
+            {
+                <li class="account-card">
+                    <div class="account-card-header">
+                        <span class="account-name">@account.Name</span>
+                        <span class="account-currency">@account.Currency</span>
+                    </div>
+                    <div class="account-iban">@account.Iban</div>
+                    <div class="account-balance">@account.Balance.ToString("N2") @account.Currency</div>
+                </li>
+            }
+        </ul>
+    </section>
+
+    <section class="accounts-section">
+        <h2>Cards</h2>
+        <ul class="accounts-list">
+            @foreach (var card in Cards)
+            {
+                <li class="account-card payment-card">
+                    <div class="account-card-header">
+                        <span class="account-name">@card.Scheme</span>
+                        <span class="account-currency">@card.Holder</span>
+                    </div>
+                    <div class="account-iban">•••• •••• •••• @card.Last4</div>
+                    <div class="account-balance">Expires @card.Expires</div>
+                </li>
+            }
+        </ul>
+    </section>
+
+    <div class="accounts-actions">
+        <a class="button button-primary" href="checkout">New payment transfer</a>
+        <a class="button button-secondary" href="user/orders">Transaction history</a>
+    </div>
+</div>
+
+@code {
+    // Sample portfolio for the portal dashboard; balances and instruments are
+    // illustrative and PANs are always shown masked (last-4 only, PCI-DSS 3.3).
+    private static readonly Account[] Accounts =
+    [
+        new("Everyday Checking", "DE89 3704 0044 0532 0130 00", 12_480.55m, "USD"),
+        new("Savings", "DE89 3704 0044 0532 0130 01", 48_902.10m, "USD"),
+    ];
+
+    private static readonly PaymentCard[] Cards =
+    [
+        new("Visa Debit", "4417", "12/28", "A. HOLDER"),
+        new("Mastercard Credit", "5301", "09/27", "A. HOLDER"),
+    ];
+
+    private record Account(string Name, string Iban, decimal Balance, string Currency);
+
+    private record PaymentCard(string Scheme, string Last4, string Expires, string Holder);
+}

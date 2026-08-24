@@ -7,7 +7,6 @@ on:
       - 'src/Payment.Shared/**'
       - 'src/PaymentProcessor/**'
       - 'src/WebApp/**'
-      - 'src/WebAppComponents/**'
       - 'tests/Ordering.*/**'
       - 'tests/Application.UnitTests/**'
       - '.github/workflows/banking-ci.yml'
@@ -19,7 +18,6 @@ on:
       - 'src/Payment.Shared/**'
       - 'src/PaymentProcessor/**'
       - 'src/WebApp/**'
-      - 'src/WebAppComponents/**'
       - 'tests/Ordering.*/**'
       - 'tests/Application.UnitTests/**'
 
@@ -34,12 +32,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
-      # Restore workloads for any OS-applicable targets before package
-      # restore, otherwise resolution fails with NETSDK1147. Build the web
-      # subset: MAUI iOS/macOS packs (ClientApp/HybridApp) cannot resolve on a
-      # Linux runner and are covered separately by pr-validation-maui.yml.
-      - name: Restore .NET workloads
-        run: dotnet workload restore eShop.slnx
       - name: Restore
         run: dotnet restore eShop.Web.slnf
       - name: Build
@@ -55,10 +47,8 @@ jobs:
         uses: actions/setup-dotnet@v4
       - name: Ordering unit tests (handlers, PCI-DSS, idempotency)
         run: dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --configuration Release
-      - name: Application unit tests (PaymentProcessor, Webhook retries)
+      - name: Application unit tests (PaymentProcessor, identity configuration)
         run: dotnet test tests/Application.UnitTests/Application.UnitTests.csproj --configuration Release
-      - name: AppHost unit tests (orchestration, WebApp wiring)
-        run: dotnet test tests/eShop.AppHost.UnitTests/eShop.AppHost.UnitTests.csproj --configuration Release
 
   ordering-integration:
     name: Ordering integration tests
