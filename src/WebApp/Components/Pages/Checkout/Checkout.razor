@@ -1,7 +1,7 @@
 @page "/checkout"
 @using System.Globalization
 @using System.ComponentModel.DataAnnotations
-@inject BasketState Basket
+@inject TransferService Transfers
 @inject NavigationManager Nav
 @attribute [Authorize]
 
@@ -64,7 +64,7 @@
             </div>
             <div class="form-section">
                 <div class="form-buttons">
-                    <a href="cart" class="button button-secondary"><img role="presentation" src="icons/arrow-left.svg" />Back to transfer summary</a>
+                    <a href="" class="button button-secondary"><img role="presentation" src="icons/arrow-left.svg" />Back to accounts</a>
                     <button class="button button-primary" type="submit">Authorize transfer</button>
                 </div>
             </div>
@@ -89,7 +89,7 @@
     }
 
     [SupplyParameterFromForm]
-    public BasketCheckoutInfo Info { get; set; } = default!;
+    public TransferInfo Info { get; set; } = default!;
 
     [CascadingParameter]
     public HttpContext HttpContext { get; set; } = default!;
@@ -107,7 +107,7 @@
 
     private void PopulateFormWithDefaultInfo()
     {
-        Info = new BasketCheckoutInfo
+        Info = new TransferInfo
         {
             Street = ReadClaim("address_street"),
             City = ReadClaim("address_city"),
@@ -134,18 +134,19 @@
 
     private async Task HandleValidSubmitAsync()
     {
-        Info.CardTypeId = 1;
-        await Basket.CheckoutAsync(Info);
+        await Transfers.SubmitTransferAsync(Info);
         Nav.NavigateTo("user/orders");
     }
 
-    private async Task PerformCustomValidationAsync()
+    private Task PerformCustomValidationAsync()
     {
         extraMessages.Clear();
 
-        if ((await Basket.GetBasketItemsAsync()).Count == 0 && Info.TransferAmount <= 0)
+        if (Info.TransferAmount <= 0)
         {
-            extraMessages.Add(new FieldIdentifier(Info, ""), "Specify a transaction amount or add items to the transfer summary");
+            extraMessages.Add(new FieldIdentifier(Info, ""), "Specify a transaction amount");
         }
+
+        return Task.CompletedTask;
     }
 }

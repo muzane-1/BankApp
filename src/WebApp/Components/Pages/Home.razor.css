@@ -1,0 +1,63 @@
+.accounts-dashboard {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+}
+
+.accounts-section h2 {
+    margin: 1.5rem 0 1rem;
+}
+
+.accounts-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.account-card {
+    border: 1px solid #d7dbe0;
+    border-radius: 8px;
+    padding: 1.25rem;
+    background: #fff;
+}
+
+.account-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.account-name {
+    font-weight: 600;
+}
+
+.account-currency {
+    color: #5a6572;
+    font-size: 0.85rem;
+}
+
+.account-iban {
+    font-family: monospace;
+    color: #5a6572;
+    margin: 0.75rem 0;
+}
+
+.account-balance {
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.payment-card .account-balance {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #5a6572;
+}
+
+.accounts-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
