@@ -1,4 +1,6 @@
 ﻿using eShop.IntegrationEventLogEF;
+using eShop.Ordering.Infrastructure.AuditTrail;
+using eShop.Payment.Shared.Security;
 
 namespace eShop.Ordering.Infrastructure;
 
@@ -14,8 +16,10 @@ public class OrderingContext : DbContext, IUnitOfWork
     public DbSet<PaymentMethod> Payments { get; set; }
     public DbSet<Buyer> Buyers { get; set; }
     public DbSet<CardType> CardTypes { get; set; }
+    public DbSet<FinancialAuditEvent> FinancialAuditEvents { get; set; }
 
     private readonly IMediator _mediator;
+    private readonly ISensitiveDataProtector _sensitiveDataProtector;
     private IDbContextTransaction _currentTransaction;
 
     public OrderingContext(DbContextOptions<OrderingContext> options) : base(options) { }
@@ -32,15 +36,25 @@ public class OrderingContext : DbContext, IUnitOfWork
         System.Diagnostics.Debug.WriteLine("OrderingContext::ctor ->" + this.GetHashCode());
     }
 
+    /// <summary>
+    /// Constructor used when field-level encryption of payment data (PCI-DSS) is configured.
+    /// </summary>
+    public OrderingContext(DbContextOptions<OrderingContext> options, IMediator mediator, ISensitiveDataProtector sensitiveDataProtector)
+        : this(options, mediator)
+    {
+        _sensitiveDataProtector = sensitiveDataProtector;
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("ordering");
         modelBuilder.ApplyConfiguration(new ClientRequestEntityTypeConfiguration());
-        modelBuilder.ApplyConfiguration(new PaymentMethodEntityTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new PaymentMethodEntityTypeConfiguration(_sensitiveDataProtector));
         modelBuilder.ApplyConfiguration(new OrderEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new OrderItemEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new CardTypeEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new BuyerEntityTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new FinancialAuditEventEntityTypeConfiguration());
         modelBuilder.UseIntegrationEventLogs();
     }
 
@@ -61,11 +75,17 @@ public class OrderingContext : DbContext, IUnitOfWork
         return true;
     }
 
-    public async Task<IDbContextTransaction> BeginTransactionAsync()
+    /// <summary>
+    /// Begins an explicit database transaction. Monetary state changes should
+    /// request <see cref="IsolationLevel.Serializable"/> so concurrent balance
+    /// mutations cannot interleave; the EF execution strategy transparently
+    /// retries serialization failures.
+    /// </summary>
+    public async Task<IDbContextTransaction> BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
     {
         if (_currentTransaction != null) return null;
 
-        _currentTransaction = await Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+        _currentTransaction = await Database.BeginTransactionAsync(isolationLevel);
 
         return _currentTransaction;
     }

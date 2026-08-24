@@ -289,3 +289,110 @@ h1:focus {
     .blazor-error-boundary::after {
         content: "An error has occurred."
     }
+/* ===== National Digital Banking Portal ===== */
+
+.bank-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+}
+
+.bank-logo-text {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.compliance-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+.compliance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #d7f5e3;
+    background: rgba(16, 122, 74, 0.22);
+    border: 1px solid rgba(72, 199, 142, 0.55);
+}
+
+.compliance-badge::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #48c78e;
+    box-shadow: 0 0 6px rgba(72, 199, 142, 0.9);
+}
+
+/* Accounts & cards dashboard */
+.bank-account-name {
+    font-weight: 600;
+}
+
+.bank-card-number {
+    font-family: "Consolas", "SFMono-Regular", monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    color: #6b7280;
+}
+
+.bank-balance {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Payment transfer gateway */
+.transfer-gateway .iso-message-preview {
+    margin-top: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #d7dce3;
+    border-left: 4px solid #0a7a4a;
+    border-radius: 8px;
+    background: #f7faf9;
+}
+
+.transfer-gateway .iso-message-preview h3 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #0a7a4a;
+}
+
+.transfer-gateway .iso-message-preview dl {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 1.25rem;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.transfer-gateway .iso-message-preview dt {
+    font-weight: 600;
+    color: #374151;
+}
+
+.transfer-gateway .iso-message-preview dd {
+    margin: 0;
+    color: #111827;
+    word-break: break-all;
+}
+
+.transfer-gateway .iso-message-preview code {
+    font-size: 0.82rem;
+    background: #eef2f5;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}

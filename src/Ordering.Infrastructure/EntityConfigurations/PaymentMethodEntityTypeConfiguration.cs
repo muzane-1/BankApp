@@ -1,8 +1,17 @@
-﻿namespace eShop.Ordering.Infrastructure.EntityConfigurations;
+﻿using eShop.Payment.Shared.Security;
+
+namespace eShop.Ordering.Infrastructure.EntityConfigurations;
 
 class PaymentMethodEntityTypeConfiguration
     : IEntityTypeConfiguration<PaymentMethod>
 {
+    private readonly ISensitiveDataProtector _sensitiveDataProtector;
+
+    public PaymentMethodEntityTypeConfiguration(ISensitiveDataProtector sensitiveDataProtector = null)
+    {
+        _sensitiveDataProtector = sensitiveDataProtector;
+    }
+
     public void Configure(EntityTypeBuilder<PaymentMethod> paymentConfiguration)
     {
         paymentConfiguration.ToTable("paymentmethods");
@@ -24,11 +33,25 @@ class PaymentMethodEntityTypeConfiguration
             .HasColumnName("Alias")
             .HasMaxLength(200);
 
-        paymentConfiguration
+        // PCI-DSS 3.4: the PAN and security code are encrypted at rest with
+        // AES-256 when a data protection key is configured. Ciphertext is
+        // Base64 and larger than the cleartext, so the columns are widened.
+        var cardNumber = paymentConfiguration
             .Property("_cardNumber")
             .HasColumnName("CardNumber")
-            .HasMaxLength(25)
+            .HasMaxLength(256)
             .IsRequired();
+
+        var securityNumber = paymentConfiguration
+            .Property("_securityNumber")
+            .HasColumnName("SecurityNumber")
+            .HasMaxLength(256);
+
+        if (_sensitiveDataProtector?.IsEncryptionEnabled == true)
+        {
+            cardNumber.HasConversion(new EncryptedStringConverter(_sensitiveDataProtector));
+            securityNumber.HasConversion(new EncryptedStringConverter(_sensitiveDataProtector));
+        }
 
         paymentConfiguration
             .Property("_expiration")

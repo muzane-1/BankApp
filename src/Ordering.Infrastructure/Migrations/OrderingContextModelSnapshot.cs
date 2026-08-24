@@ -90,6 +90,77 @@ namespace Ordering.Infrastructure.Migrations
                     b.ToTable("buyers", "ordering");
                 });
 
+            modelBuilder.Entity("eShop.Ordering.Infrastructure.AuditTrail.FinancialAuditEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActorId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("CorrelationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("DetailsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Hash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Iso20022MessageId")
+                        .HasMaxLength(35)
+                        .HasColumnType("character varying(35)");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("PreviousHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("Subject");
+
+                    b.ToTable("financial_audit_events", "ordering");
+                });
+
             modelBuilder.Entity("eShop.Ordering.Domain.AggregatesModel.BuyerAggregate.CardType", b =>
                 {
                     b.Property<int>("Id")
@@ -130,8 +201,8 @@ namespace Ordering.Infrastructure.Migrations
 
                     b.Property<string>("_cardNumber")
                         .IsRequired()
-                        .HasMaxLength(25)
-                        .HasColumnType("character varying(25)")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
                         .HasColumnName("CardNumber");
 
                     b.Property<int>("_cardTypeId")
@@ -142,6 +213,11 @@ namespace Ordering.Infrastructure.Migrations
                         .HasMaxLength(25)
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("Expiration");
+
+                    b.Property<string>("_securityNumber")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("SecurityNumber");
 
                     b.HasKey("Id");
 

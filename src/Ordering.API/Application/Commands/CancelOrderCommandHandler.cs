@@ -4,10 +4,12 @@
 public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, bool>
 {
     private readonly IOrderRepository _orderRepository;
+    private readonly IFinancialAuditStore _financialAuditStore;
 
-    public CancelOrderCommandHandler(IOrderRepository orderRepository)
+    public CancelOrderCommandHandler(IOrderRepository orderRepository, IFinancialAuditStore financialAuditStore)
     {
         _orderRepository = orderRepository;
+        _financialAuditStore = financialAuditStore;
     }
 
     /// <summary>
@@ -25,6 +27,20 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
         }
 
         orderToUpdate.SetCancelledStatus();
+
+        // AML: record the cancellation (potential refund trigger) in the
+        // immutable audit trail within the same ACID transaction.
+        await _financialAuditStore.RecordAsync(new FinancialAuditEntry
+        {
+            EventType = FinancialAuditEventType.OrderCancelled,
+            OccurredAtUtc = DateTimeOffset.UtcNow,
+            CorrelationId = $"CANCEL-{command.OrderNumber}-{Guid.NewGuid():N}",
+            Subject = $"Order/{command.OrderNumber}",
+            Amount = orderToUpdate.GetTotal(),
+            Currency = "USD",
+            Outcome = "Succeeded"
+        }, cancellationToken);
+
         return await _orderRepository.UnitOfWork.SaveEntitiesAsync(cancellationToken);
     }
 }

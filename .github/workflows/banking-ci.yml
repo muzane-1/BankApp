@@ -1,0 +1,97 @@
+name: Banking Compliance CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/Ordering.*/**'
+      - 'src/Payment.Shared/**'
+      - 'src/PaymentProcessor/**'
+      - 'src/WebApp/**'
+      - 'src/WebAppComponents/**'
+      - 'tests/Ordering.*/**'
+      - 'tests/Application.UnitTests/**'
+      - '.github/workflows/banking-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/Ordering.*/**'
+      - 'src/Payment.Shared/**'
+      - 'src/PaymentProcessor/**'
+      - 'src/WebApp/**'
+      - 'src/WebAppComponents/**'
+      - 'tests/Ordering.*/**'
+      - 'tests/Application.UnitTests/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build payment services
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+      # Restore workloads for any OS-applicable targets before package
+      # restore, otherwise resolution fails with NETSDK1147. Build the web
+      # subset: MAUI iOS/macOS packs (ClientApp/HybridApp) cannot resolve on a
+      # Linux runner and are covered separately by pr-validation-maui.yml.
+      - name: Restore .NET workloads
+        run: dotnet workload restore eShop.slnx
+      - name: Restore
+        run: dotnet restore eShop.Web.slnf
+      - name: Build
+        run: dotnet build eShop.Web.slnf --no-restore --configuration Release
+
+  payment-tests:
+    name: Payment flow unit tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+      - name: Ordering unit tests (handlers, PCI-DSS, idempotency)
+        run: dotnet test tests/Ordering.UnitTests/Ordering.UnitTests.csproj --configuration Release
+      - name: Application unit tests (PaymentProcessor, Webhook retries)
+        run: dotnet test tests/Application.UnitTests/Application.UnitTests.csproj --configuration Release
+      - name: AppHost unit tests (orchestration, WebApp wiring)
+        run: dotnet test tests/eShop.AppHost.UnitTests/eShop.AppHost.UnitTests.csproj --configuration Release
+
+  ordering-integration:
+    name: Ordering integration tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+      - name: Functional tests (migrations, API, audit trail)
+        run: dotnet test tests/Ordering.FunctionalTests/Ordering.FunctionalTests.csproj --configuration Release
+
+  security-lint:
+    name: Security analysis
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+      - name: Vulnerable dependency scan
+        run: dotnet list eShop.Web.slnf package --vulnerable --include-transitive
+      - name: Outdated sensitive-dependency check (crypto/resilience)
+        run: dotnet list src/Ordering.API/Ordering.API.csproj package --outdated
+      - name: DevSkim security linter
+        uses: microsoft/DevSkim-Action@v1
+        with:
+          DirectoryToScan: src/Ordering.API
+        continue-on-error: true
+      - name: CodeQL init
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          build-mode: none
+      - name: CodeQL analyze
+        uses: github/codeql-action/analyze@v3
