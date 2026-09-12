@@ -2,8 +2,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <DotnetPackagesVersion>10.0.8</DotnetPackagesVersion>
-    <MicrosoftExtensionsVersion>10.4.0</MicrosoftExtensionsVersion>
+    <DotnetPackagesVersion>10.0.12</DotnetPackagesVersion>
+    <MicrosoftExtensionsVersion>10.10.0</MicrosoftExtensionsVersion>
     <AspireVersion>13.4.6</AspireVersion>
     <DuendeVersion>7.3.1</DuendeVersion>
     <ApiVersioningVersion>10.0.0-preview.2</ApiVersioningVersion>
