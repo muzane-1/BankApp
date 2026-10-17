@@ -58,7 +58,7 @@
     <PackageVersion Include="Duende.IdentityServer" Version="7.3.2" />
     <PackageVersion Include="Duende.IdentityServer.AspNetIdentity" Version="7.3.2" />
     <PackageVersion Include="Duende.IdentityServer.EntityFramework" Version="7.3.2" />
-    <PackageVersion Include="Duende.IdentityServer.Storage" Version="7.3.2" />
+    <PackageVersion Include="Duende.IdentityServer.Storage" Version="8.0.10" />
     <!-- Miscellaneous -->
     <PackageVersion Include="FluentValidation" Version="12.0.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
